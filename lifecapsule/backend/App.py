@@ -14,7 +14,7 @@ app = Flask(__name__)
 CORS(app)
 
 # Constants
-DIARY_FILE_PATH = "./diary.txt"
+DIARY_FILE_PATH = "../data/diary.txt"
 
 # Global Variables
 vectorstore = None
