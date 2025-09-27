@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for Card component */
+.card-container {
+  /* Additional custom styles if needed */
+}
+
+/* Hover animations */
+.card-hover {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Card variants */
+.card-elevated {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.card-flat {
+  box-shadow: none;
+  border: 1px solid #e5e7eb; /* gray-200 */
+}
+
+/* Card header styles */
+.card-header {
+  margin-bottom: 1rem;
+}
+
+/* Card title styles */
+.card-title {
+  font-size: 1.125rem; /* text-lg */
+  font-weight: 600;
+  color: #111827; /* gray-900 */
+}
+
+/* Card content styles */
+.card-content {
+  /* Default styles handled by Tailwind classes */
+}
+
+/* Card footer styles */
+.card-footer {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb; /* gray-200 */
+}
