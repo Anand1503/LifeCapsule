@@ -38,7 +38,7 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 font-poppins">
+      <div className="min-h-screen bg-white">
         <Sidebar
           isMobile={isMobile}
           isOpen={sidebarOpen}

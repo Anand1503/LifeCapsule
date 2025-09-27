@@ -22,12 +22,13 @@ import {
   Pie,
   Cell
 } from 'recharts';
+import { fetchDashboardSummary } from '../../services/dashboardService';
 import './Dashboard.css';
 
 const Dashboard = () => {
   const [stats, setStats] = useState({
     totalEntries: 0,
-    totalQueries: 0,
+    totalQueries: 0, // Note: Queries not tracked backend-side, keep 0 or mock
     avgEntryLength: 0,
     moodTrend: 'neutral'
   });
@@ -37,45 +38,65 @@ const Dashboard = () => {
     moodDistribution: [],
     activityData: []
   });
+  const [loading, setLoading] = useState(true);
 
-  // Mock data for demonstration
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setStats({
-        totalEntries: 24,
-        totalQueries: 8,
-        avgEntryLength: 342,
-        moodTrend: 'positive'
-      });
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchDashboardSummary();
 
-      setChartData({
-        entriesOverTime: [
-          { date: '2024-01-01', entries: 2 },
-          { date: '2024-01-02', entries: 1 },
-          { date: '2024-01-03', entries: 3 },
-          { date: '2024-01-04', entries: 2 },
-          { date: '2024-01-05', entries: 4 },
-          { date: '2024-01-06', entries: 3 },
-          { date: '2024-01-07', entries: 2 },
-        ],
-        moodDistribution: [
-          { name: 'Happy', value: 45, color: '#10b981' },
-          { name: 'Neutral', value: 30, color: '#6b7280' },
-          { name: 'Reflective', value: 15, color: '#3b82f6' },
-          { name: 'Thoughtful', value: 10, color: '#8b5cf6' },
-        ],
-        activityData: [
-          { day: 'Mon', entries: 3, queries: 1 },
-          { day: 'Tue', entries: 2, queries: 0 },
-          { day: 'Wed', entries: 4, queries: 2 },
-          { day: 'Thu', entries: 3, queries: 1 },
-          { day: 'Fri', entries: 5, queries: 2 },
-          { day: 'Sat', entries: 4, queries: 1 },
-          { day: 'Sun', entries: 3, queries: 1 },
-        ]
-      });
-    }, 1000);
+        // Map stats
+        setStats({
+          totalEntries: data.total_entries,
+          totalQueries: data.assistant_queries,
+          avgEntryLength: data.avg_entry_length,
+          moodTrend: data.mood_trend
+        });
+
+        // Map chart data
+        const entriesOverTime = data.entries_over_time.map(item => ({
+          date: item.date,
+          entries: parseInt(item.entries)
+        }));
+
+        const moodDistribution = [
+          { name: 'Positive', value: data.mood_distribution.positive, color: '#10b981' },
+          { name: 'Neutral', value: data.mood_distribution.neutral, color: '#6b7280' },
+          { name: 'Negative', value: data.mood_distribution.negative, color: '#ef4444' },
+        ];
+
+        const activityData = Object.entries(data.weekly_activity).map(([day, count]) => ({
+          day,
+          entries: count,
+          queries: 0 // Since not tracked
+        }));
+
+        setChartData({
+          entriesOverTime,
+          moodDistribution,
+          activityData
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        // Fallback to empty data
+        setStats({
+          totalEntries: 0,
+          totalQueries: 0,
+          avgEntryLength: 0,
+          moodTrend: 'neutral'
+        });
+        setChartData({
+          entriesOverTime: [],
+          moodDistribution: [],
+          activityData: []
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
   const StatCard = ({ title, value, icon: Icon, trend, color = 'blue' }) => (
@@ -86,13 +107,13 @@ const Dashboard = () => {
       <div className="flex items-center justify-between">
         <div>
           <p className="text-sm font-medium text-gray-600">{title}</p>
-          <p className="text-3xl font-bold text-gray-900">{value}</p>
+          <p className="text-3xl font-bold text-black">{value}</p>
           {trend && (
             <p className={`text-sm flex items-center mt-1 ${
-              trend === 'up' ? 'text-green-600' : 'text-red-600'
+              trend === 'positive' ? 'text-green-600' : trend === 'negative' ? 'text-red-600' : 'text-gray-600'
             }`}>
               <TrendingUp size={16} className="mr-1" />
-              {trend === 'up' ? 'Increasing' : 'Decreasing'}
+              {trend === 'positive' ? 'Positive' : trend === 'negative' ? 'Negative' : 'Neutral'}
             </p>
           )}
         </div>
@@ -103,6 +124,18 @@ const Dashboard = () => {
     </motion.div>
   );
 
+  if (loading) {
+    return (
+      <div className="p-6 flex justify-center items-center min-h-screen">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          className="w-8 h-8 border-4 border-gray-300 border-t-gray-900 rounded-full"
+        />
+      </div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -111,7 +144,7 @@ const Dashboard = () => {
       className="p-6 space-y-8"
     >
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+        <h1 className="text-3xl font-bold text-black mb-2 flex items-center">
           <BarChart3 className="mr-3" size={32} />
           Dashboard
         </h1>
@@ -126,14 +159,13 @@ const Dashboard = () => {
           title="Total Entries"
           value={stats.totalEntries}
           icon={BookOpen}
-          trend="up"
+          trend={stats.moodTrend === 'positive' ? 'up' : 'down'}
           color="green"
         />
         <StatCard
           title="Assistant Queries"
           value={stats.totalQueries}
           icon={MessageSquare}
-          trend="up"
           color="blue"
         />
         <StatCard
@@ -144,20 +176,27 @@ const Dashboard = () => {
         />
         <StatCard
           title="Mood Trend"
-          value={stats.moodTrend}
+          value={stats.moodTrend.charAt(0).toUpperCase() + stats.moodTrend.slice(1)}
           icon={Activity}
           color="orange"
         />
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {stats.totalEntries === 0 ? (
+        <div className="text-center py-12">
+          <BookOpen size={64} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-xl font-semibold text-gray-600 mb-2">No data available yet</h3>
+          <p className="text-gray-500">Start writing your diary today!</p>
+        </div>
+      ) : (
+        /* Charts Grid */
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Entries Over Time */}
         <motion.div
           whileHover={{ scale: 1.01 }}
           className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Entries Over Time</h3>
+          <h3 className="text-lg font-semibold text-black mb-4">Entries Over Time</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={chartData.entriesOverTime}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -193,7 +232,7 @@ const Dashboard = () => {
           whileHover={{ scale: 1.01 }}
           className="bg-white rounded-xl shadow-lg border border-gray-200 p-6"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Mood Distribution</h3>
+          <h3 className="text-lg font-semibold text-black mb-4">Mood Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -220,7 +259,7 @@ const Dashboard = () => {
           whileHover={{ scale: 1.01 }}
           className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 lg:col-span-2"
         >
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Weekly Activity</h3>
+          <h3 className="text-lg font-semibold text-black mb-4">Weekly Activity</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={chartData.activityData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -238,7 +277,8 @@ const Dashboard = () => {
             </BarChart>
           </ResponsiveContainer>
         </motion.div>
-      </div>
+        </div>
+      )}
     </motion.div>
   );
 };

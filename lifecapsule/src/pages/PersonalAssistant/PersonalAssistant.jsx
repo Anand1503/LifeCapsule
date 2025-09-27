@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Bot, User } from 'lucide-react';
+import axios from 'axios';
 import './PersonalAssistant.css';
 
 const PersonalAssistant = () => {
@@ -29,25 +30,25 @@ const PersonalAssistant = () => {
     setIsLoading(true);
 
     try {
-      const response = await fetch('http://localhost:5000/analyze_diary', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: userMessage.content }),
+      const response = await axios.post('http://localhost:8000/api/assistant/query', {
+        question: userMessage.content
       });
 
-      const data = await response.json();
       const assistantMessage = {
         type: 'assistant',
-        content: data.answer || 'I apologize, but I couldn\'t process your request. Please try again.'
+        content: response.data.answer || 'I apologize, but I couldn\'t process your request. Please try again.',
+        sources: response.data.sources || [],
+        sentiment: response.data.sentiment || 'neutral'
       };
 
       setMessages(prev => [...prev, assistantMessage]);
-      setCurrentMessageIndex(messages.length);
+      setCurrentMessageIndex(messages.length + 1);
       setDisplayedText('');
     } catch (error) {
+      console.error('Error querying assistant:', error);
       const errorMessage = {
         type: 'assistant',
-        content: 'I\'m sorry, I encountered an error. Please try again later.'
+        content: 'Assistant is unavailable, please try again later.'
       };
       setMessages(prev => [...prev, errorMessage]);
     } finally {
@@ -83,10 +84,10 @@ const PersonalAssistant = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-4xl mx-auto p-6 h-full flex flex-col"
+      className="max-w-4xl mx-auto p-6 h-full flex flex-col bg-white"
     >
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2 flex items-center">
+        <h1 className="text-3xl font-bold text-black mb-2 flex items-center">
           <Bot className="mr-3" size={32} />
           Personal Assistant
         </h1>
@@ -108,13 +109,11 @@ const PersonalAssistant = () => {
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
-                  className={`
-                    max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-md
-                    ${message.type === 'user'
+                  className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-md ${
+                    message.type === 'user'
                       ? 'bg-gray-900 text-white rounded-br-md'
-                      : 'bg-gray-100 text-gray-900 rounded-bl-md'
-                    }
-                  `}
+                      : 'bg-blue-100 text-gray-900 rounded-bl-md'
+                  }`}
                 >
                   <div className="flex items-center mb-1">
                     {message.type === 'user' ? (
@@ -125,6 +124,17 @@ const PersonalAssistant = () => {
                     <span className="text-xs opacity-75">
                       {message.type === 'user' ? 'You' : 'Assistant'}
                     </span>
+                    {message.type === 'assistant' && message.sentiment && (
+                      <span className={`ml-2 px-2 py-1 rounded-full text-xs ${
+                        message.sentiment === 'positive'
+                          ? 'bg-green-100 text-green-800'
+                          : message.sentiment === 'negative'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {message.sentiment === 'positive' ? '😊' : message.sentiment === 'negative' ? '😞' : '😐'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-sm leading-relaxed">
                     {index === currentMessageIndex && message.type === 'assistant'
@@ -135,6 +145,16 @@ const PersonalAssistant = () => {
                       <span className="animate-pulse">|</span>
                     )}
                   </p>
+                  {message.type === 'assistant' && message.sources && message.sources.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-gray-200">
+                      <p className="text-xs font-medium text-gray-500 mb-1">Sources:</p>
+                      {message.sources.map((source, srcIndex) => (
+                        <p key={srcIndex} className="text-xs text-gray-600 bg-gray-50 p-1 rounded mt-1">
+                          {source}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
@@ -180,13 +200,11 @@ const PersonalAssistant = () => {
             whileTap={{ scale: 0.95 }}
             type="submit"
             disabled={!query.trim() || isLoading}
-            className={`
-              px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center
-              ${query.trim() && !isLoading
+            className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 flex items-center ${
+              query.trim() && !isLoading
                 ? 'bg-gray-900 text-white hover:bg-gray-800 shadow-lg'
                 : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              }
-            `}
+            }`}
           >
             <Send size={18} className="mr-2" />
             Send

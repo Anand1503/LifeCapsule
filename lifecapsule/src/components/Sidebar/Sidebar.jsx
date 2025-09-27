@@ -45,7 +45,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }) => {
             <div className="flex flex-col h-full">
               {/* Logo/Brand */}
               <div className="p-4 border-b border-gray-200">
-                <h1 className="text-xl font-bold text-gray-900">LifeCapsule</h1>
+                <h1 className="text-xl font-bold text-black">LifeCapsule</h1>
               </div>
 
               {/* Navigation Menu */}
@@ -66,7 +66,7 @@ const Sidebar = ({ isMobile, isOpen, setIsOpen }) => {
                             w-full flex items-center px-3 py-3 rounded-lg transition-all duration-200
                             ${isActive
                               ? 'bg-gray-900 text-white shadow-md'
-                              : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                              : 'text-gray-700 hover:bg-gray-100 hover:text-black'
                             }
                           `}
                         >
